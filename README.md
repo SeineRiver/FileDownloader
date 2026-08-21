@@ -17,8 +17,11 @@ The popup has three compact in-popup views. The **Main Download** view provides 
 - `scripting` — injects the link scanner only after the popup is opened.
 - `downloads` — starts selected downloads through the background service worker.
 - `storage` — retains file-type and destination preferences locally in the browser.
+- `clipboardWrite` — copies user-selected downloadable file URLs only when the user presses **Copy URLs**.
 
 The extension has no broad host permissions. It does not send data anywhere, make network requests to classify links, or inspect page content beyond link URLs.
+
+**Chrome Web Store permission justification — `clipboardWrite`:** Allows the extension to copy user-selected downloadable file URLs to the clipboard only when the user presses the Copy URLs button.
 
 ## Supported file types
 
@@ -74,6 +77,12 @@ For dynamic pages, the review view shows a notice when its lightweight periodic 
 
 Reviewed URLs and individual file selections are popup-only state. They disappear when the popup closes and are never stored as long-term preferences.
 
+## Copy and export selected URLs
+
+The Review downloads footer can copy the current selected URLs to the clipboard or export them as a local UTF-8 `.txt` manifest, one normalized absolute URL per line and in review order. Both actions happen only after you press their button. Export uses the configured download destination and duplicate-filename behavior, but is a single local manifest download and never enters the remote-file download queue.
+
+Selected URL lists are processed only locally: they are not retained in Chrome storage, sent to a server, shared, sold, logged, or used for analytics. URLs can contain sensitive query parameters or signed tokens, so handle copied and exported manifests carefully.
+
 ## Remembered preferences
 
 File-type selections (PDF, Images, Docs, and Media), each custom category's selection state, custom category definitions, destination preferences, duplicate-filename setting, and concurrency setting are stored locally in the browser and restored whenever the popup opens, including on another tab. Individual review selections are not stored. New custom categories are selected by default; deleting one also removes its saved selection state. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
@@ -93,6 +102,8 @@ File-type selections (PDF, Images, Docs, and Media), each custom category's sele
 - [ ] Confirm duplicate absolute URLs appear only once, built-in groups stay ordered PDF/Images/Docs/Media, and custom groups follow in configuration order.
 - [ ] On Refresh, confirm retained URLs keep their selection, new URLs start unselected, and removed selected URLs are reported; confirm the final download scan never adds new URLs.
 - [ ] Close and reopen the popup to confirm review choices disappear while category preferences remain persisted.
+- [ ] In Review, verify Copy URLs and Export .txt disable at zero selection; copied/exported content is exactly the selected URLs in review order, one per line, and neither action changes queue progress.
+- [ ] Test export with default, Ask me, and subfolder destinations; verify uniquify/prompt behavior and the overwrite warning for an existing manifest.
 - [ ] Default mode starts downloads without Save As prompts.
 - [ ] Ask-me mode warns about and opens one Save As dialog for each selected file.
 - [ ] An empty subfolder is accepted; a valid nested subfolder is saved relative to Downloads; `reports/../private` is rejected.

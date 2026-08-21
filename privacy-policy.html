@@ -27,7 +27,7 @@
         <p>Huy's File Downloader is a Chrome extension that finds supported downloadable links on the page you are viewing and starts downloads you select. Your privacy is important: the extension does not collect, sell, transmit, or share your personal data.</p>
 
         <h2>Information the extension accesses</h2>
-        <p>After you open the extension popup, it temporarily accesses the active tab to examine only link URLs from top-level <code>&lt;a href&gt;</code> elements. It uses these URLs solely to identify supported filename extensions, show category counts, and start the downloads you choose.</p>
+        <p>After you open the extension popup, it temporarily accesses the active tab to examine link URLs from top-level <code>&lt;a href&gt;</code> elements and direct audio/video source URLs. It uses these URLs solely to identify supported filename extensions, show category counts, and start the downloads you choose.</p>
         <p>The extension does not read page text, forms, passwords, cookies, browsing history, or content from embedded frames. It does not make network requests to classify links.</p>
 
         <h2>Local storage</h2>
@@ -40,6 +40,9 @@
 
         <h2>Downloads</h2>
         <p>When you choose to download files, the extension sends the selected link URLs to Chrome's built-in download manager. Downloads are handled by Chrome according to your Chrome settings. The extension cannot read or set your absolute Downloads path.</p>
+
+        <h2>Copying and exporting URLs</h2>
+        <p>Copying selected URLs to the clipboard and exporting them as a text file happen only after you press the corresponding button in the Review downloads view. The selected URLs are processed locally, are not retained in Chrome storage or history, and are not transmitted to any server. URLs can include sensitive query parameters or signed tokens, so handle copied and exported lists carefully.</p>
 
         <h2>Data sharing</h2>
         <p>Huy's File Downloader does not operate a server, use analytics, include advertising, or share data with third parties.</p>
