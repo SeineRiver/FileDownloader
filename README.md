@@ -2,14 +2,14 @@
 
 A compact Manifest V3 Chrome extension that finds supported file URLs in links on the active page and batch-downloads the categories you select. It scans only `<a href>` values in the page's top-level document; it does not inspect other page content or fetch links to determine their type.
 
-The popup has two compact in-popup views. The **Main Download** view provides built-in file-type selectors—PDF, Images, Docs, and Media—plus any user-defined categories, with live counts, download status, and a read-only **Current settings** summary. Select the gear button or **Edit settings** to open the **Configuration** view, where download destination, duplicate-filename behavior, and custom file categories can be changed. All categories are selected by default, and the page is rescanned about once per second while the popup remains open so dynamically added links are included.
+The popup has three compact in-popup views. The **Main Download** view provides built-in file-type selectors—PDF, Images, Docs, and Media—plus any user-defined categories, with live counts, download status, and a read-only **Current settings** summary. **Download N** immediately queues all files from enabled categories after a fresh scan; **Review N links** opens **Review downloads** for per-file choices before anything starts. Select the gear button or **Edit settings** to open the **Configuration** view, where download destination, duplicate-filename behavior, and custom file categories can be changed. All categories are selected by default, and the page is rescanned about once per second while the popup remains open so dynamically added links are included.
 
 ## Load it in Chrome
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Select **Load unpacked** and choose this `my-file-downloader` folder.
-4. Open a normal web page, click the extension icon, select file types and a destination, then choose **Download N files**.
+4. Open a normal web page, click the extension icon, select file types and a destination, then choose **Download N** to queue enabled files immediately or **Review N links** to make per-file choices first.
 
 ## Permissions
 
@@ -64,9 +64,17 @@ Configuration offers **1 — Sequential**, **3 — Recommended** (the default), 
 
 Save As downloads and filename-conflict prompts run one at a time, even when a higher preference is selected, so Chrome never opens multiple native input dialogs at once. Active batches are owned by the background service worker and retained for the browser session if the popup closes.
 
+## Review downloads
+
+The review step lists each unique matched URL from the currently enabled categories, grouped by category. Every file is initially selected, but individual rows, each category checkbox, and **Select all** / **Select none** can change the transient selection before a batch begins. Files are not downloaded until **Download N selected** is chosen.
+
+For dynamic pages, the review view shows a notice when its lightweight periodic check detects that links may have changed; it never replaces the list or changes selections automatically. Use **Refresh** to update deliberately: selections for URLs that still exist are kept, newly found URLs start unselected, and removed selected links are reported. A final scan just before download intersects the review choices with still-present supported HTTP(S) links, so newly discovered links are never added automatically.
+
+Reviewed URLs and individual file selections are popup-only state. They disappear when the popup closes and are never stored as long-term preferences.
+
 ## Remembered preferences
 
-File-type selections (PDF, Images, Docs, and Media), each custom category's selection state, custom category definitions, destination preferences, and the duplicate-filename setting are stored locally in the browser and restored whenever the popup opens, including on another tab. New custom categories are selected by default; deleting one also removes its saved selection state. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
+File-type selections (PDF, Images, Docs, and Media), each custom category's selection state, custom category definitions, destination preferences, duplicate-filename setting, and concurrency setting are stored locally in the browser and restored whenever the popup opens, including on another tab. Individual review selections are not stored. New custom categories are selected by default; deleting one also removes its saved selection state. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
 
 ## Manual test checklist
 
@@ -77,6 +85,10 @@ File-type selections (PDF, Images, Docs, and Media), each custom category's sele
 - [ ] A page with no supported links shows the empty state and disables download.
 - [ ] Opening the popup on `chrome://` or the Chrome Web Store shows a graceful scan error.
 - [ ] Toggle categories in the 2×2 selector grid; the selected total and download label update immediately.
+- [ ] Choose Review, then test individual rows, Select all, Select none, and category checkboxes (including an indeterminate category checkbox).
+- [ ] Confirm duplicate absolute URLs appear only once, built-in groups stay ordered PDF/Images/Docs/Media, and custom groups follow in configuration order.
+- [ ] On Refresh, confirm retained URLs keep their selection, new URLs start unselected, and removed selected URLs are reported; confirm the final download scan never adds new URLs.
+- [ ] Close and reopen the popup to confirm review choices disappear while category preferences remain persisted.
 - [ ] Default mode starts downloads without Save As prompts.
 - [ ] Ask-me mode warns about and opens one Save As dialog for each selected file.
 - [ ] An empty subfolder is accepted; a valid nested subfolder is saved relative to Downloads; `reports/../private` is rejected.

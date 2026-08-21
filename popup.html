@@ -11,7 +11,7 @@
       <section id="main-view" aria-labelledby="main-title">
         <header class="view-header">
           <div><h1 id="main-title">Huy's File Downloader</h1><p id="page-status" class="subtitle">Scanning this page…</p></div>
-          <button id="open-configuration-button" class="icon-button settings-button" type="button" aria-label="Open configuration">⚙</button>
+          <div class="header-actions"><button id="rescan-button" class="icon-button" type="button" aria-label="Rescan page links" title="Rescan page links">↻</button><button id="open-configuration-button" class="icon-button settings-button" type="button" aria-label="Open configuration" title="Open configuration">⚙</button></div>
         </header>
         <section class="categories" aria-label="File categories to download">
           <button class="category-toggle" type="button" data-category="pdf" aria-pressed="true"><span class="category-name"><span class="category-icon" aria-hidden="true">📄</span>PDF</span><span class="count" data-count="pdf">0</span></button>
@@ -20,11 +20,19 @@
           <button class="category-toggle" type="button" data-category="media" aria-pressed="true"><span class="category-name"><span class="category-icon" aria-hidden="true">♫</span>Media</span><span class="count" data-count="media">0</span></button>
           <div id="custom-category-toggles" class="custom-category-toggles" aria-label="Custom file categories"></div>
         </section>
-        <p id="selection-total" class="selection-total" aria-live="polite">0 selected files</p>
+        <p id="selection-total" class="selection-total" aria-live="polite">0 files selected</p>
         <p id="empty-state" class="empty-state" hidden>No supported file links were found on this page.</p>
         <p id="result-status" class="result-status" aria-live="polite"></p>
-        <div class="actions"><button id="rescan-button" class="secondary-button" type="button">Rescan</button><button id="download-button" class="primary-button" type="button" disabled>Download 0 files</button></div>
+        <div class="actions"><button id="download-button" class="primary-button" type="button" disabled>Download</button><button id="review-button" class="secondary-button" type="button" disabled>Review 0 links</button></div>
         <section class="current-settings" aria-labelledby="current-settings-title"><div class="section-heading"><h2 id="current-settings-title">Current settings</h2><button id="edit-settings-button" class="link-button" type="button">Edit settings</button></div><p id="current-destination"></p><p id="current-duplicate"></p><p id="current-concurrency"></p></section>
+      </section>
+      <section id="review-view" hidden aria-labelledby="review-title">
+        <header class="view-header review-header"><button id="review-back-button" class="secondary-button compact-button" type="button">← Back</button><h1 id="review-title">Review downloads</h1></header>
+        <p id="review-summary" class="subtitle" aria-live="polite">0 files found · 0 selected</p>
+        <p id="review-notice" class="review-notice" aria-live="polite"></p>
+        <div class="review-controls"><button id="review-select-all" class="secondary-button compact-button" type="button">Select all</button><button id="review-select-none" class="secondary-button compact-button" type="button">Select none</button><button id="review-refresh" class="secondary-button compact-button" type="button">Refresh</button></div>
+        <div id="review-groups" class="review-groups" aria-label="Files to download"></div>
+        <footer class="review-footer"><span id="review-selected-total" aria-live="polite">0 selected</span><button id="review-download-button" class="primary-button" type="button" disabled>Download 0 selected</button></footer>
       </section>
       <section id="configuration-view" hidden aria-labelledby="configuration-title">
         <header class="view-header"><button id="back-button" class="secondary-button compact-button" type="button">← Back</button><h1 id="configuration-title">Configuration</h1></header>
