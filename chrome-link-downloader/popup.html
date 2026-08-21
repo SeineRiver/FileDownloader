@@ -8,94 +8,35 @@
   </head>
   <body class="is-loading">
     <main class="popup-shell">
-      <header>
-        <h1>Huy's File Downloader</h1>
-        <p id="page-status" class="subtitle">Scanning this page…</p>
-      </header>
-
-      <section class="categories" aria-label="File categories to download">
-        <button class="category-toggle" type="button" data-category="pdf" aria-pressed="true">
-          <span class="category-name"><span class="category-icon" aria-hidden="true">📄</span>PDF</span><span class="count" data-count="pdf">0</span>
-        </button>
-        <button class="category-toggle" type="button" data-category="images" aria-pressed="true">
-          <span class="category-name"><span class="category-icon" aria-hidden="true">🖼</span>Images</span><span class="count" data-count="images">0</span>
-        </button>
-        <button class="category-toggle" type="button" data-category="docs" aria-pressed="true">
-          <span class="category-name"><span class="category-icon" aria-hidden="true">📝</span>Docs</span><span class="count" data-count="docs">0</span>
-        </button>
-        <button class="category-toggle" type="button" data-category="media" aria-pressed="true">
-          <span class="category-name"><span class="category-icon" aria-hidden="true">♫</span>Media</span><span class="count" data-count="media">0</span>
-        </button>
+      <section id="main-view" aria-labelledby="main-title">
+        <header class="view-header">
+          <div><h1 id="main-title">Huy's File Downloader</h1><p id="page-status" class="subtitle">Scanning this page…</p></div>
+          <button id="open-configuration-button" class="icon-button settings-button" type="button" aria-label="Open configuration">⚙</button>
+        </header>
+        <section class="categories" aria-label="File categories to download">
+          <button class="category-toggle" type="button" data-category="pdf" aria-pressed="true"><span class="category-name"><span class="category-icon" aria-hidden="true">📄</span>PDF</span><span class="count" data-count="pdf">0</span></button>
+          <button class="category-toggle" type="button" data-category="images" aria-pressed="true"><span class="category-name"><span class="category-icon" aria-hidden="true">🖼</span>Images</span><span class="count" data-count="images">0</span></button>
+          <button class="category-toggle" type="button" data-category="docs" aria-pressed="true"><span class="category-name"><span class="category-icon" aria-hidden="true">📝</span>Docs</span><span class="count" data-count="docs">0</span></button>
+          <button class="category-toggle" type="button" data-category="media" aria-pressed="true"><span class="category-name"><span class="category-icon" aria-hidden="true">♫</span>Media</span><span class="count" data-count="media">0</span></button>
+        </section>
+        <p id="selection-total" class="selection-total" aria-live="polite">0 selected files</p>
+        <p id="empty-state" class="empty-state" hidden>No supported file links were found on this page.</p>
+        <p id="result-status" class="result-status" aria-live="polite"></p>
+        <div class="actions"><button id="rescan-button" class="secondary-button" type="button">Rescan</button><button id="download-button" class="primary-button" type="button" disabled>Download 0 files</button></div>
+        <section class="current-settings" aria-labelledby="current-settings-title"><div class="section-heading"><h2 id="current-settings-title">Current settings</h2><button id="edit-settings-button" class="link-button" type="button">Edit settings</button></div><p id="current-destination"></p><p id="current-duplicate"></p></section>
       </section>
-
-      <p id="selection-total" class="selection-total" aria-live="polite">0 selected files</p>
-      <p id="empty-state" class="empty-state" hidden>No supported file links were found on this page.</p>
-      <p id="result-status" class="result-status" aria-live="polite"></p>
-
-      <section class="save-location" aria-label="Download location">
-        <div class="save-location-heading">
-          <div class="destination-summary">
-            <span id="destination-label" class="destination-label">Chrome default Downloads folder</span>
-            <span id="destination-path" class="destination-path" hidden></span>
-            <span class="destination-separator" aria-hidden="true">·</span>
-            <span id="destination-help" class="destination-help">Usually ~/Downloads; configured in Chrome</span>
-          </div>
-        </div>
-        <div class="save-location-actions">
-          <button id="open-downloads-button" class="link-button" type="button">Open download folder</button>
-          <button id="choose-location-button" class="secondary-button compact-button" type="button" aria-haspopup="dialog" aria-expanded="false">Choose location…</button>
-        </div>
-        <div class="duplicate-handling">
-          <label for="duplicate-handling-select">If filename already exists</label>
-          <select id="duplicate-handling-select">
-            <option value="uniquify">Keep both (recommended)</option>
-            <option value="prompt">Ask me</option>
-            <option value="overwrite">Replace existing — may overwrite files</option>
-          </select>
-          <p id="duplicate-handling-help" class="duplicate-handling-help">Chrome creates a distinct filename, such as file (1).pdf.</p>
-        </div>
-        <p id="duplicate-summary" class="duplicate-summary"></p>
-      </section>
-
-      <div class="actions">
-        <button id="rescan-button" class="secondary-button" type="button">Rescan</button>
-        <button id="download-button" class="primary-button" type="button" disabled>Download 0 files</button>
-      </div>
-
-      <section id="destination-dialog" class="destination-dialog" role="dialog" aria-modal="true" aria-labelledby="destination-dialog-title" hidden tabindex="-1">
-        <div class="dialog-header">
-          <h2 id="destination-dialog-title">Choose save location</h2>
-          <button id="close-location-button" class="icon-button" type="button" aria-label="Close save location menu">×</button>
-        </div>
-        <fieldset class="destination-options">
-          <legend class="sr-only">Destination mode</legend>
+      <section id="configuration-view" hidden aria-labelledby="configuration-title">
+        <header class="view-header"><button id="back-button" class="secondary-button compact-button" type="button">← Back</button><h1 id="configuration-title">Configuration</h1></header>
+        <section class="configuration-section" aria-labelledby="destination-title"><h2 id="destination-title">Save location</h2><fieldset class="destination-options"><legend class="sr-only">Download destination</legend>
           <label class="destination-option"><input type="radio" name="destination-mode" value="default"> <span><strong>Chrome default Downloads folder</strong><small>Usually ~/Downloads; configured in Chrome</small></span></label>
           <label class="destination-option"><input type="radio" name="destination-mode" value="ask"> <span><strong>Ask me for each file</strong><small>Chrome will show one Save As dialog for each file in this batch.</small></span></label>
           <label class="destination-option"><input type="radio" name="destination-mode" value="subfolder"> <span><strong>Downloads subfolder</strong><small>Save relative to Chrome's configured Downloads folder.</small></span></label>
-        </fieldset>
-        <label id="subfolder-field" class="subfolder-field" for="subfolder-input" hidden>
-          Subfolder path (optional)
-          <input id="subfolder-input" type="text" autocomplete="off" placeholder="Page Downloads/2026-08" aria-describedby="subfolder-hint subfolder-error">
-          <span id="subfolder-hint">Use folder names separated by /; the path stays relative to Downloads.</span>
-        </label>
-        <p id="subfolder-error" class="validation-message" role="alert" hidden></p>
-        <div class="dialog-actions">
-          <button id="cancel-location-button" class="secondary-button" type="button">Cancel</button>
-          <button id="save-location-button" class="primary-button" type="button">Save location</button>
-        </div>
+        </fieldset><label id="subfolder-field" class="subfolder-field" for="subfolder-input" hidden>Subfolder path (optional)<input id="subfolder-input" type="text" autocomplete="off" placeholder="Page Downloads/2026-08" aria-describedby="subfolder-hint subfolder-error"><span id="subfolder-hint">Use folder names separated by /; the path stays relative to Downloads.</span></label><p id="subfolder-error" class="validation-message" role="alert" hidden></p></section>
+        <section class="configuration-section" aria-labelledby="duplicate-title"><h2 id="duplicate-title">If filename already exists</h2><label class="duplicate-handling" for="duplicate-handling-select">Choose what Chrome does<select id="duplicate-handling-select"><option value="uniquify">Keep both (recommended)</option><option value="prompt">Ask me</option><option value="overwrite">Replace existing — may overwrite files</option></select></label><p id="duplicate-handling-help" class="setting-help"></p></section>
+        <button id="open-downloads-button" class="link-button open-downloads-button" type="button">Open download folder</button>
       </section>
-
-      <section id="overwrite-dialog" class="destination-dialog" role="alertdialog" aria-modal="true" aria-labelledby="overwrite-dialog-title" hidden tabindex="-1">
-        <div class="dialog-header">
-          <h2 id="overwrite-dialog-title">Replace existing files?</h2>
-        </div>
-        <p class="dialog-message">Files with matching names in the selected Downloads location may be replaced. Continue?</p>
-        <div class="dialog-actions">
-          <button id="cancel-overwrite-button" class="secondary-button" type="button">Cancel</button>
-          <button id="continue-overwrite-button" class="primary-button" type="button">Continue</button>
-        </div>
-      </section>
+      <section id="overwrite-dialog" class="destination-dialog" role="alertdialog" aria-modal="true" aria-labelledby="overwrite-dialog-title" hidden tabindex="-1"><h2 id="overwrite-dialog-title">Replace existing files?</h2><p class="dialog-message">Files with matching names in the selected Downloads location may be replaced. Continue?</p><div class="dialog-actions"><button id="cancel-overwrite-button" class="secondary-button" type="button">Cancel</button><button id="continue-overwrite-button" class="primary-button" type="button">Continue</button></div></section>
     </main>
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

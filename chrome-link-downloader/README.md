@@ -2,7 +2,7 @@
 
 A compact Manifest V3 Chrome extension that finds supported file URLs in links on the active page and batch-downloads the categories you select. It scans only `<a href>` values in the page's top-level document; it does not inspect other page content or fetch links to determine their type.
 
-The popup provides a 2×2 set of file-type selectors—PDF, Images, Docs, and Media—with live counts. All categories are selected by default, and the page is rescanned about once per second while the popup remains open so dynamically added links are included.
+The popup has two compact in-popup views. The **Main Download** view provides the 2×2 set of file-type selectors—PDF, Images, Docs, and Media—with live counts, download status, and a read-only **Current settings** summary. Select the gear button or **Edit settings** to open the **Configuration** view, where download destination and duplicate-filename behavior can be changed. All categories are selected by default, and the page is rescanned about once per second while the popup remains open so dynamically added links are included.
 
 ## Load it in Chrome
 
@@ -54,7 +54,7 @@ Conflict detection is handled by Chrome at download time. Chrome extensions do n
 
 ## Remembered preferences
 
-File-type selections (PDF, Images, Docs, and Media), destination preferences, and the duplicate-filename setting are stored locally and restored whenever the popup opens, including on another tab. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
+File-type selections (PDF, Images, Docs, and Media), destination preferences, and the duplicate-filename setting are stored locally in the browser and restored whenever the popup opens, including on another tab. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
 
 ## Manual test checklist
 
@@ -73,3 +73,5 @@ File-type selections (PDF, Images, Docs, and Media), destination preferences, an
 - [ ] With a matching filename already present, Keep both creates a unique filename and Ask me shows Chrome's conflict prompt.
 - [ ] Replace existing shows its confirmation; Cancel starts no downloads and Continue starts the batch with Chrome's overwrite handling.
 - [ ] Change the duplicate-filename setting, close the popup, and confirm it is restored when reopening it.
+- [ ] Open Configuration with the gear button, then use Back to return to the Main Download view without losing scan counts or status.
+- [ ] Change the destination or duplicate behavior in Configuration and confirm the Main view's Current settings summary updates immediately.
