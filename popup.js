@@ -1,127 +1,38 @@
-import { CATEGORIES, DEFAULT_SETTINGS, loadSettings, saveSelectedFileTypes, saveSettings } from "./settings.js";
+import { CATEGORIES, DEFAULT_SETTINGS, categoryKey, loadSettings, saveCustomCategories, saveSelectedFileTypes, saveSettings } from "./settings.js";
 import { MainView } from "./main-view.js";
 import { ConfigurationView } from "./configuration-view.js";
 
 const SCAN_REQUEST = "page-file-downloader:scan";
 const DOWNLOAD_REQUEST = "page-file-downloader:download";
-let currentLinks = [];
-let activeTabId = null;
-let scanInProgress = null;
+let currentLinks = [], activeTabId = null, scanInProgress = null;
 let settings = { destination: { ...DEFAULT_SETTINGS.destination }, duplicateHandling: DEFAULT_SETTINGS.duplicateHandling };
-let selectedCategories = new Set(CATEGORIES);
-
+let customCategories = [], customCategorySelections = {}, selectedCategories = new Set(CATEGORIES);
 const mainView = new MainView({ onCategoryToggle: toggleCategory, onRescan: () => scanCurrentTab({ announce: true }), onDownload: downloadSelected, onOpenConfiguration: openConfiguration });
-const configurationView = new ConfigurationView({ onBack: showMain, onSettingsChange: updateSettings, onOpenDownloads: openDownloads, onError: (error) => mainView.setStatus(apiError(error, "Could not save configuration."), true) });
+const configurationView = new ConfigurationView({ onBack: showMain, onSettingsChange: updateSettings, onCustomCategoriesChange: updateCustomCategories, onOpenDownloads: openDownloads, onError: (error) => mainView.setStatus(apiError(error, "Could not save configuration."), true) });
 const overwriteDialog = document.querySelector("#overwrite-dialog");
 
 function apiError(error, fallback) { return error?.message || fallback; }
 function selectedLinks() { return currentLinks.filter((link) => selectedCategories.has(link.category)); }
 function selectedFileTypes() { return Object.fromEntries(CATEGORIES.map((category) => [category, selectedCategories.has(category)])); }
-function render() { mainView.render({ links: currentLinks, selectedCategories, activeTabId, settings }); }
-
-function toggleCategory(category) {
-  if (selectedCategories.has(category)) selectedCategories.delete(category);
-  else selectedCategories.add(category);
-  mainView.setStatus("");
+function render() { mainView.render({ links: currentLinks, selectedCategories, activeTabId, settings, customCategories }); }
+function toggleCategory(category) { if (selectedCategories.has(category)) selectedCategories.delete(category); else selectedCategories.add(category); mainView.setStatus(""); render(); if (CATEGORIES.includes(category)) void saveSelectedFileTypes(selectedFileTypes()); else { const id = category.slice("custom:".length); customCategorySelections[id] = selectedCategories.has(category); void saveCustomCategories(customCategories, customCategorySelections); } }
+async function updateSettings(nextSettings) { settings = { destination: { ...nextSettings.destination }, duplicateHandling: nextSettings.duplicateHandling }; await saveSettings(settings); render(); }
+async function updateCustomCategories(nextCategories) {
+  const priorSelections = customCategorySelections; customCategories = nextCategories.map((category) => ({ ...category, extensions: [...category.extensions] }));
+  customCategorySelections = Object.fromEntries(customCategories.map((category) => [category.id, priorSelections[category.id] !== false]));
+  selectedCategories = new Set([...selectedCategories].filter((key) => !key.startsWith("custom:")));
+  customCategories.forEach((category) => { if (customCategorySelections[category.id]) selectedCategories.add(categoryKey(category)); });
+  await saveCustomCategories(customCategories, customCategorySelections);
+  configurationView.customCategoriesView.render(customCategories);
   render();
-  void saveSelectedFileTypes(selectedFileTypes());
-}
-
-async function updateSettings(nextSettings) {
-  settings = { destination: { ...nextSettings.destination }, duplicateHandling: nextSettings.duplicateHandling };
-  await saveSettings(settings);
-  render();
-}
-
-function openConfiguration() { configurationView.show(settings); mainView.hide(); }
-function showMain() { configurationView.hide(); mainView.show(); document.querySelector("#open-configuration-button").focus(); render(); }
-
-async function getActiveTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) throw new Error("No active browser tab is available.");
-  return tab;
-}
-
-function scanCurrentTab({ announce = false, force = false } = {}) {
-  if (scanInProgress) return force ? scanInProgress.then(() => scanCurrentTab({ announce })) : scanInProgress;
-  scanInProgress = (async () => {
-    try {
-      const tab = await getActiveTab();
-      activeTabId = tab.id;
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["scanner.js"] });
-      const response = await chrome.tabs.sendMessage(tab.id, { type: SCAN_REQUEST });
-      if (!response?.ok || !Array.isArray(response.links)) throw new Error(response?.error || "The page scanner did not return links.");
-      currentLinks = response.links.filter((link) => typeof link?.url === "string" && CATEGORIES.includes(link.category));
-      mainView.setPageStatus(`Found ${currentLinks.length} supported link${currentLinks.length === 1 ? "" : "s"}.`);
-      if (announce) mainView.setStatus("Scan updated.");
-    } catch (error) {
-      activeTabId = null;
-      currentLinks = [];
-      mainView.setPageStatus("This page cannot be scanned.");
-      mainView.setStatus(`${apiError(error, "Chrome blocked access to this page.")} Try a normal web page.`, true);
-    } finally {
-      scanInProgress = null;
-      render();
-    }
-  })();
-  return scanInProgress;
-}
-
-function confirmOverwrite() {
-  return new Promise((resolve) => {
-    const trigger = document.activeElement;
-    const cancelButton = document.querySelector("#cancel-overwrite-button");
-    const continueButton = document.querySelector("#continue-overwrite-button");
-    const close = (confirmed) => { overwriteDialog.hidden = true; cancelButton.removeEventListener("click", cancel); continueButton.removeEventListener("click", proceed); overwriteDialog.removeEventListener("keydown", keydown); (trigger || document.querySelector("#download-button")).focus(); resolve(confirmed); };
-    const cancel = () => close(false);
-    const proceed = () => close(true);
-    const keydown = (event) => { if (event.key === "Escape") { event.preventDefault(); close(false); } };
-    cancelButton.addEventListener("click", cancel);
-    continueButton.addEventListener("click", proceed);
-    overwriteDialog.addEventListener("keydown", keydown);
-    overwriteDialog.hidden = false;
-    cancelButton.focus();
-  });
-}
-
-async function downloadSelected() {
-  mainView.setStatus("");
-  mainView.setPageStatus("Refreshing links before download…");
   await scanCurrentTab({ force: true });
-  const urls = selectedLinks().map((link) => link.url);
-  if (!urls.length) { mainView.setStatus("No selected file links are available to download.", true); return; }
-  if (settings.destination.mode === "ask" && urls.length > 1 && !window.confirm(`Chrome will open ${urls.length} Save As dialogs, one for each file. Continue?`)) { mainView.setStatus("Download canceled."); render(); return; }
-  if (settings.duplicateHandling === "overwrite" && !await confirmOverwrite()) { mainView.setStatus("Download canceled."); render(); return; }
-  try {
-    const response = await chrome.runtime.sendMessage({ type: DOWNLOAD_REQUEST, urls, destination: { ...settings.destination }, duplicateHandling: settings.duplicateHandling });
-    if (!response?.ok) throw new Error(response?.error || "The download request failed.");
-    const message = response.failed ? `${response.succeeded} started; ${response.failed} failed.${response.errors?.[0] ? ` ${response.errors[0]}` : ""}` : `${response.succeeded} download${response.succeeded === 1 ? "" : "s"} started.`;
-    mainView.setStatus(message, Boolean(response.failed));
-  } catch (error) {
-    mainView.setStatus(apiError(error, "Could not start downloads."), true);
-  } finally { render(); }
 }
-
-async function openDownloads() {
-  try {
-    await chrome.downloads.showDefaultFolder();
-    const subfolder = settings.destination.mode === "subfolder" && settings.destination.subfolder;
-    mainView.setStatus(subfolder ? "Chrome can open the Downloads folder, but not a specific subfolder." : "Opened Chrome's Downloads folder.", Boolean(subfolder));
-  } catch (error) { mainView.setStatus(apiError(error, "Could not open Chrome's Downloads folder."), true); }
-}
-
-async function initialize() {
-  try {
-    const restored = await loadSettings();
-    settings = restored.settings;
-    selectedCategories = new Set(CATEGORIES.filter((category) => restored.selectedFileTypes[category]));
-  } catch {
-    // Keep safe defaults if local storage is temporarily unavailable.
-  }
-  render();
-  document.body.classList.remove("is-loading");
-  scanCurrentTab();
-}
-
-initialize();
-window.setInterval(() => scanCurrentTab(), 1000);
+function openConfiguration() { configurationView.show(settings, customCategories); mainView.hide(); }
+function showMain() { configurationView.hide(); mainView.show(); document.querySelector("#open-configuration-button").focus(); render(); }
+async function getActiveTab() { const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }); if (!tab?.id) throw new Error("No active browser tab is available."); return tab; }
+function scanCurrentTab({ announce = false, force = false } = {}) { if (scanInProgress) return force ? scanInProgress.then(() => scanCurrentTab({ announce })) : scanInProgress; scanInProgress = (async () => { try { const tab = await getActiveTab(); activeTabId = tab.id; await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["scanner.js"] }); const response = await chrome.tabs.sendMessage(tab.id, { type: SCAN_REQUEST, customCategories }); if (!response?.ok || !Array.isArray(response.links)) throw new Error(response?.error || "The page scanner did not return links."); const allowedCategories = new Set([...CATEGORIES, ...customCategories.map(categoryKey)]); currentLinks = response.links.filter((link) => typeof link?.url === "string" && allowedCategories.has(link.category)); mainView.setPageStatus(`Found ${currentLinks.length} supported link${currentLinks.length === 1 ? "" : "s"}.`); if (announce) mainView.setStatus("Scan updated."); } catch (error) { activeTabId = null; currentLinks = []; mainView.setPageStatus("This page cannot be scanned."); mainView.setStatus(`${apiError(error, "Chrome blocked access to this page.")} Try a normal web page.`, true); } finally { scanInProgress = null; render(); } })(); return scanInProgress; }
+function confirmOverwrite() { return new Promise((resolve) => { const trigger = document.activeElement, cancelButton = document.querySelector("#cancel-overwrite-button"), continueButton = document.querySelector("#continue-overwrite-button"); const close = (confirmed) => { overwriteDialog.hidden = true; cancelButton.removeEventListener("click", cancel); continueButton.removeEventListener("click", proceed); overwriteDialog.removeEventListener("keydown", keydown); (trigger || document.querySelector("#download-button")).focus(); resolve(confirmed); }; const cancel = () => close(false); const proceed = () => close(true); const keydown = (event) => { if (event.key === "Escape") { event.preventDefault(); close(false); } }; cancelButton.addEventListener("click", cancel); continueButton.addEventListener("click", proceed); overwriteDialog.addEventListener("keydown", keydown); overwriteDialog.hidden = false; cancelButton.focus(); }); }
+async function downloadSelected() { mainView.setStatus(""); mainView.setPageStatus("Refreshing links before download…"); await scanCurrentTab({ force: true }); const urls = selectedLinks().map((link) => link.url); if (!urls.length) { mainView.setStatus("No selected file links are available to download.", true); return; } if (settings.destination.mode === "ask" && urls.length > 1 && !window.confirm(`Chrome will open ${urls.length} Save As dialogs, one for each file. Continue?`)) { mainView.setStatus("Download canceled."); render(); return; } if (settings.duplicateHandling === "overwrite" && !await confirmOverwrite()) { mainView.setStatus("Download canceled."); render(); return; } try { const response = await chrome.runtime.sendMessage({ type: DOWNLOAD_REQUEST, urls, destination: { ...settings.destination }, duplicateHandling: settings.duplicateHandling }); if (!response?.ok) throw new Error(response?.error || "The download request failed."); const message = response.failed ? `${response.succeeded} started; ${response.failed} failed.${response.errors?.[0] ? ` ${response.errors[0]}` : ""}` : `${response.succeeded} download${response.succeeded === 1 ? "" : "s"} started.`; mainView.setStatus(message, Boolean(response.failed)); } catch (error) { mainView.setStatus(apiError(error, "Could not start downloads."), true); } finally { render(); } }
+async function openDownloads() { try { await chrome.downloads.showDefaultFolder(); const subfolder = settings.destination.mode === "subfolder" && settings.destination.subfolder; mainView.setStatus(subfolder ? "Chrome can open the Downloads folder, but not a specific subfolder." : "Opened Chrome's Downloads folder.", Boolean(subfolder)); } catch (error) { mainView.setStatus(apiError(error, "Could not open Chrome's Downloads folder."), true); } }
+async function initialize() { try { const restored = await loadSettings(); settings = restored.settings; customCategories = restored.customCategories; customCategorySelections = restored.customCategorySelections; selectedCategories = new Set(CATEGORIES.filter((category) => restored.selectedFileTypes[category])); customCategories.forEach((category) => { if (customCategorySelections[category.id]) selectedCategories.add(categoryKey(category)); }); } catch { /* Keep safe defaults if local storage is temporarily unavailable. */ } render(); document.body.classList.remove("is-loading"); scanCurrentTab(); }
+initialize(); window.setInterval(() => scanCurrentTab(), 1000);

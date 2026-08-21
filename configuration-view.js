@@ -1,7 +1,8 @@
 import { duplicateHandlingHelp, validateSubfolder } from "./settings.js";
+import { CustomCategoriesView } from "./custom-categories-view.js";
 
 export class ConfigurationView {
-  constructor({ onBack, onSettingsChange, onOpenDownloads, onError }) {
+  constructor({ onBack, onSettingsChange, onCustomCategoriesChange, onOpenDownloads, onError }) {
     this.root = document.querySelector("#configuration-view");
     this.back = document.querySelector("#back-button");
     this.modes = [...document.querySelectorAll('input[name="destination-mode"]')];
@@ -11,6 +12,7 @@ export class ConfigurationView {
     this.duplicate = document.querySelector("#duplicate-handling-select");
     this.duplicateHelp = document.querySelector("#duplicate-handling-help");
     this.settings = null;
+    this.customCategoriesView = new CustomCategoriesView({ onChange: onCustomCategoriesChange, onError });
     this.back.addEventListener("click", onBack);
     document.querySelector("#open-downloads-button").addEventListener("click", onOpenDownloads);
     this.modes.forEach((input) => input.addEventListener("change", () => this.changeDestination(input.value, onSettingsChange, onError)));
@@ -19,7 +21,7 @@ export class ConfigurationView {
     this.duplicate.addEventListener("change", () => this.changeDuplicateHandling(onSettingsChange, onError));
   }
 
-  show(settings) { this.root.hidden = false; this.render(settings); this.back.focus(); }
+  show(settings, customCategories) { this.root.hidden = false; this.render(settings, false, customCategories); this.back.focus(); }
   hide() { this.root.hidden = true; }
   async changeDestination(mode, onSettingsChange, onError) {
     this.settings.destination.mode = mode;
@@ -41,7 +43,7 @@ export class ConfigurationView {
     this.render(this.settings);
     try { await onSettingsChange(this.settings); } catch (error) { onError(error); }
   }
-  render(settings, preserveInput = false) {
+  render(settings, preserveInput = false, customCategories = null) {
     this.settings = { destination: { ...settings.destination }, duplicateHandling: settings.duplicateHandling };
     this.modes.forEach((input) => { input.checked = input.value === this.settings.destination.mode; });
     const subfolderActive = this.settings.destination.mode === "subfolder";
@@ -53,5 +55,6 @@ export class ConfigurationView {
     this.subfolderError.hidden = validation.ok;
     this.duplicate.value = this.settings.duplicateHandling;
     this.duplicateHelp.textContent = duplicateHandlingHelp(this.settings.duplicateHandling);
+    if (customCategories) this.customCategoriesView.render(customCategories);
   }
 }

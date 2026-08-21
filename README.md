@@ -2,7 +2,7 @@
 
 A compact Manifest V3 Chrome extension that finds supported file URLs in links on the active page and batch-downloads the categories you select. It scans only `<a href>` values in the page's top-level document; it does not inspect other page content or fetch links to determine their type.
 
-The popup has two compact in-popup views. The **Main Download** view provides the 2×2 set of file-type selectors—PDF, Images, Docs, and Media—with live counts, download status, and a read-only **Current settings** summary. Select the gear button or **Edit settings** to open the **Configuration** view, where download destination and duplicate-filename behavior can be changed. All categories are selected by default, and the page is rescanned about once per second while the popup remains open so dynamically added links are included.
+The popup has two compact in-popup views. The **Main Download** view provides built-in file-type selectors—PDF, Images, Docs, and Media—plus any user-defined categories, with live counts, download status, and a read-only **Current settings** summary. Select the gear button or **Edit settings** to open the **Configuration** view, where download destination, duplicate-filename behavior, and custom file categories can be changed. All categories are selected by default, and the page is rescanned about once per second while the popup remains open so dynamically added links are included.
 
 ## Load it in Chrome
 
@@ -32,6 +32,12 @@ Links are classified solely from the final filename/path extension, case-insensi
 
 Endpoints without a recognized filename/path extension are not included, even if they ultimately return a downloadable file. Non-HTTP(S) links are also ignored. Duplicate absolute URLs are counted once.
 
+## Custom file categories
+
+In **Configuration**, use **Custom file categories** to add a named category, provide one or more comma- or whitespace-separated extensions, then save it. For example, `Archives` can use `.zip, .rar, .7z`; compound suffixes such as `.tar.gz` are supported. Existing category cards can be edited or deleted (with confirmation).
+
+Custom categories are extension-based only: the extension scans the lowercased URL pathname and never fetches a file or inspects its remote content or MIME type. An extension must be explicitly assigned to a custom category; there is no catch-all “Others” category. Built-in and custom extensions cannot overlap, so every matched link maps to exactly one category.
+
 ## Download destinations
 
 - **Chrome default Downloads folder** starts downloads without prompting.
@@ -54,7 +60,7 @@ Conflict detection is handled by Chrome at download time. Chrome extensions do n
 
 ## Remembered preferences
 
-File-type selections (PDF, Images, Docs, and Media), destination preferences, and the duplicate-filename setting are stored locally in the browser and restored whenever the popup opens, including on another tab. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
+File-type selections (PDF, Images, Docs, and Media), each custom category's selection state, custom category definitions, destination preferences, and the duplicate-filename setting are stored locally in the browser and restored whenever the popup opens, including on another tab. New custom categories are selected by default; deleting one also removes its saved selection state. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
 
 ## Manual test checklist
 
@@ -75,3 +81,5 @@ File-type selections (PDF, Images, Docs, and Media), destination preferences, an
 - [ ] Change the duplicate-filename setting, close the popup, and confirm it is restored when reopening it.
 - [ ] Open Configuration with the gear button, then use Back to return to the Main Download view without losing scan counts or status.
 - [ ] Change the destination or duplicate behavior in Configuration and confirm the Main view's Current settings summary updates immediately.
+- [ ] Create Archives with `.zip, .rar, .7z` and Data with `.csv, .json, .tar.gz`; verify their toggles and counts, including uppercase URL extensions and query strings.
+- [ ] Confirm `.pdf` and an extension already assigned to another custom category are rejected; rename a category without changing its selected state; delete one and confirm its toggle and stored selection are removed.
