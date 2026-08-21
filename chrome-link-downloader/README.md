@@ -36,15 +36,25 @@ Endpoints without a recognized filename/path extension are not included, even if
 
 - **Chrome default Downloads folder** starts downloads without prompting.
 - **Ask me for each file** uses Chrome's Save As interface. A batch opens one separate Save As dialog per file; the popup asks for confirmation before a multi-file batch.
-- **Downloads subfolder** saves into an optional nested path such as `Page Downloads/2026-08`, relative to Chrome's configured Downloads folder. Source filenames are preserved when possible and collisions use Chrome's `uniquify` behavior.
+- **Downloads subfolder** saves into an optional nested path such as `Page Downloads/2026-08`, relative to Chrome's configured Downloads folder. Source filenames are preserved when possible and use the selected duplicate-filename behavior.
 
 Subfolder paths are normalized to `/` separators and must remain relative to Downloads. Absolute paths, `..`, empty path segments, and invalid filename characters are rejected.
 
 Chrome controls the actual Downloads location. This extension cannot read or set its absolute filesystem path. The location is often `~/Downloads`, but it can be changed in Chrome settings. The popup's **Open download folder** control can open Chrome's configured Downloads root; Chrome does not provide an extension API to open a specific configured subfolder.
 
+## Duplicate filenames
+
+The **If filename already exists** setting is stored locally and applies to every download in a batch:
+
+- **Keep both** is the default. Chrome uses `uniquify` to create a distinct name such as `file (1).pdf`.
+- **Ask me** uses `prompt`; Chrome asks only when a filename conflict occurs.
+- **Replace existing** uses `overwrite` and can overwrite files with matching target names. The extension asks for confirmation before it starts an overwrite batch.
+
+Conflict detection is handled by Chrome at download time. Chrome extensions do not have a reliable general filesystem pre-check, so the extension does not try to predict or count conflicts.
+
 ## Remembered preferences
 
-File-type selections (PDF, Images, Docs, and Media) and destination preferences are stored locally and restored whenever the popup opens, including on another tab. Older saved file-type preferences that do not include Media safely treat Media as enabled.
+File-type selections (PDF, Images, Docs, and Media), destination preferences, and the duplicate-filename setting are stored locally and restored whenever the popup opens, including on another tab. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
 
 ## Manual test checklist
 
@@ -60,3 +70,6 @@ File-type selections (PDF, Images, Docs, and Media) and destination preferences 
 - [ ] An empty subfolder is accepted; a valid nested subfolder is saved relative to Downloads; `reports/../private` is rejected.
 - [ ] Deselect Images, close and reopen the popup, and confirm it remains off while other prior selections persist.
 - [ ] The Open download folder control opens Chrome's configured Downloads root.
+- [ ] With a matching filename already present, Keep both creates a unique filename and Ask me shows Chrome's conflict prompt.
+- [ ] Replace existing shows its confirmation; Cancel starts no downloads and Continue starts the batch with Chrome's overwrite handling.
+- [ ] Change the duplicate-filename setting, close the popup, and confirm it is restored when reopening it.

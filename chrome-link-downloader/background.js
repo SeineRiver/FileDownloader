@@ -1,4 +1,10 @@
 const DOWNLOAD_REQUEST = "page-file-downloader:download";
+const DEFAULT_DUPLICATE_HANDLING = "uniquify";
+const DUPLICATE_HANDLING = new Set(["uniquify", "prompt", "overwrite"]);
+
+function normalizeDuplicateHandling(value) {
+  return DUPLICATE_HANDLING.has(value) ? value : DEFAULT_DUPLICATE_HANDLING;
+}
 
 function validHttpUrl(value) {
   if (typeof value !== "string") return false;
@@ -81,13 +87,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({ ok: false, error: destination.error });
     return;
   }
+  const duplicateHandling = normalizeDuplicateHandling(message.duplicateHandling);
 
   Promise.all(
     urls.map(async (url) => {
       try {
         const options = {
           url,
-          conflictAction: "uniquify",
+          conflictAction: duplicateHandling,
           saveAs: destination.mode === "ask"
         };
         if (destination.mode === "subfolder") {

@@ -3,6 +3,8 @@ const DOWNLOAD_REQUEST = "page-file-downloader:download";
 const categories = ["pdf", "images", "docs", "media"];
 const enabledCategories = new Set(categories);
 const DEFAULT_DESTINATION = { mode: "default", subfolder: "" };
+const DEFAULT_DUPLICATE_HANDLING = "uniquify";
+const DUPLICATE_HANDLING = new Set(["uniquify", "prompt", "overwrite"]);
 
 let currentLinks = [];
 let activeTabId = null;
@@ -10,6 +12,8 @@ let scanInProgress = null;
 let destination = { ...DEFAULT_DESTINATION };
 let pendingDestination = { ...DEFAULT_DESTINATION };
 let locationTrigger = null;
+let duplicateHandling = DEFAULT_DUPLICATE_HANDLING;
+let overwriteDialogTrigger = null;
 
 const elements = {
   pageStatus: document.querySelector("#page-status"),
@@ -22,6 +26,9 @@ const elements = {
   destinationPath: document.querySelector("#destination-path"),
   destinationHelp: document.querySelector("#destination-help"),
   destinationSeparator: document.querySelector(".destination-separator"),
+  duplicateHandling: document.querySelector("#duplicate-handling-select"),
+  duplicateHandlingHelp: document.querySelector("#duplicate-handling-help"),
+  duplicateSummary: document.querySelector("#duplicate-summary"),
   chooseLocation: document.querySelector("#choose-location-button"),
   openDownloads: document.querySelector("#open-downloads-button"),
   destinationDialog: document.querySelector("#destination-dialog"),
@@ -32,8 +39,31 @@ const elements = {
   subfolderField: document.querySelector("#subfolder-field"),
   subfolder: document.querySelector("#subfolder-input"),
   subfolderError: document.querySelector("#subfolder-error"),
+  overwriteDialog: document.querySelector("#overwrite-dialog"),
+  cancelOverwrite: document.querySelector("#cancel-overwrite-button"),
+  continueOverwrite: document.querySelector("#continue-overwrite-button"),
   toggles: [...document.querySelectorAll(".category-toggle")]
 };
+
+function normalizeDuplicateHandling(value) {
+  return DUPLICATE_HANDLING.has(value) ? value : DEFAULT_DUPLICATE_HANDLING;
+}
+
+function duplicateHandlingLabel(value = duplicateHandling) {
+  return {
+    uniquify: "Keep both",
+    prompt: "Ask me",
+    overwrite: "Replace existing (may overwrite files)"
+  }[normalizeDuplicateHandling(value)];
+}
+
+function duplicateHandlingHelp(value = duplicateHandling) {
+  return {
+    uniquify: "Chrome creates a distinct filename, such as file (1).pdf.",
+    prompt: "Chrome asks only when a filename conflict occurs.",
+    overwrite: "Potentially destructive: matching target filenames may be replaced."
+  }[normalizeDuplicateHandling(value)];
+}
 
 function selectedLinks() {
   return currentLinks.filter((link) => enabledCategories.has(link.category));
@@ -104,6 +134,19 @@ function renderDestination() {
     elements.destinationLabel.textContent = "Chrome default Downloads folder";
     elements.destinationHelp.textContent = "Usually ~/Downloads; configured in Chrome";
     elements.destinationSeparator.hidden = false;
+  }
+
+  duplicateHandling = normalizeDuplicateHandling(duplicateHandling);
+  elements.duplicateHandling.value = duplicateHandling;
+  elements.duplicateHandlingHelp.textContent = duplicateHandlingHelp();
+  elements.duplicateSummary.textContent = `If filename already exists: ${duplicateHandlingLabel()}`;
+}
+
+async function persistDuplicateHandling() {
+  try {
+    await chrome.storage.local.set({ duplicateHandling });
+  } catch {
+    setResult("Could not save the filename-conflict setting.", true);
   }
 }
 
@@ -251,11 +294,21 @@ async function downloadSelected() {
     }
   }
 
+  if (duplicateHandling === "overwrite") {
+    const confirmed = await confirmOverwrite();
+    if (!confirmed) {
+      setResult("Download canceled.");
+      render();
+      return;
+    }
+  }
+
   try {
     const response = await chrome.runtime.sendMessage({
       type: DOWNLOAD_REQUEST,
       urls,
-      destination: { ...destination }
+      destination: { ...destination },
+      duplicateHandling
     });
     if (!response?.ok) throw new Error(response?.error || "The download request failed.");
 
@@ -270,6 +323,34 @@ async function downloadSelected() {
   } finally {
     render();
   }
+}
+
+function confirmOverwrite() {
+  return new Promise((resolve) => {
+    overwriteDialogTrigger = document.activeElement;
+    const close = (confirmed) => {
+      elements.overwriteDialog.hidden = true;
+      elements.cancelOverwrite.removeEventListener("click", cancel);
+      elements.continueOverwrite.removeEventListener("click", continueDownload);
+      elements.overwriteDialog.removeEventListener("keydown", onKeydown);
+      (overwriteDialogTrigger || elements.download).focus();
+      resolve(confirmed);
+    };
+    const cancel = () => close(false);
+    const continueDownload = () => close(true);
+    const onKeydown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close(false);
+      }
+    };
+
+    elements.cancelOverwrite.addEventListener("click", cancel);
+    elements.continueOverwrite.addEventListener("click", continueDownload);
+    elements.overwriteDialog.addEventListener("keydown", onKeydown);
+    elements.overwriteDialog.hidden = false;
+    elements.cancelOverwrite.focus();
+  });
 }
 
 elements.toggles.forEach((button) => {
@@ -324,11 +405,17 @@ elements.openDownloads.addEventListener("click", async () => {
     setResult(apiError(error, "Could not open Chrome's Downloads folder."), true);
   }
 });
+elements.duplicateHandling.addEventListener("change", () => {
+  duplicateHandling = normalizeDuplicateHandling(elements.duplicateHandling.value);
+  renderDestination();
+  void persistDuplicateHandling();
+});
 
 async function initialize() {
   try {
-    const saved = await chrome.storage.local.get(["destination", "selectedFileTypes"]);
+    const saved = await chrome.storage.local.get(["destination", "selectedFileTypes", "duplicateHandling"]);
     restoreSelectedFileTypes(saved.selectedFileTypes);
+    duplicateHandling = normalizeDuplicateHandling(saved.duplicateHandling);
     if (saved.destination?.mode === "default" || saved.destination?.mode === "ask") {
       const validation = validateSubfolder(saved.destination.subfolder);
       destination = {

@@ -45,6 +45,16 @@
           <button id="open-downloads-button" class="link-button" type="button">Open download folder</button>
           <button id="choose-location-button" class="secondary-button compact-button" type="button" aria-haspopup="dialog" aria-expanded="false">Choose location…</button>
         </div>
+        <div class="duplicate-handling">
+          <label for="duplicate-handling-select">If filename already exists</label>
+          <select id="duplicate-handling-select">
+            <option value="uniquify">Keep both (recommended)</option>
+            <option value="prompt">Ask me</option>
+            <option value="overwrite">Replace existing — may overwrite files</option>
+          </select>
+          <p id="duplicate-handling-help" class="duplicate-handling-help">Chrome creates a distinct filename, such as file (1).pdf.</p>
+        </div>
+        <p id="duplicate-summary" class="duplicate-summary"></p>
       </section>
 
       <div class="actions">
@@ -72,6 +82,17 @@
         <div class="dialog-actions">
           <button id="cancel-location-button" class="secondary-button" type="button">Cancel</button>
           <button id="save-location-button" class="primary-button" type="button">Save location</button>
+        </div>
+      </section>
+
+      <section id="overwrite-dialog" class="destination-dialog" role="alertdialog" aria-modal="true" aria-labelledby="overwrite-dialog-title" hidden tabindex="-1">
+        <div class="dialog-header">
+          <h2 id="overwrite-dialog-title">Replace existing files?</h2>
+        </div>
+        <p class="dialog-message">Files with matching names in the selected Downloads location may be replaced. Continue?</p>
+        <div class="dialog-actions">
+          <button id="cancel-overwrite-button" class="secondary-button" type="button">Cancel</button>
+          <button id="continue-overwrite-button" class="primary-button" type="button">Continue</button>
         </div>
       </section>
     </main>
