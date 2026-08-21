@@ -1,6 +1,6 @@
 # Huy's File Downloader
 
-A compact Manifest V3 Chrome extension that finds supported file URLs in links on the active page and batch-downloads the categories you select. It scans only `<a href>` values in the page's top-level document; it does not inspect other page content or fetch links to determine their type.
+A compact Manifest V3 Chrome extension that finds supported file URLs in links on the active page and batch-downloads the categories you select. It scans `<a href>` values and direct audio/video sources in the page's top-level document; it does not fetch links or inspect remote content to determine their type.
 
 The popup has three compact in-popup views. The **Main Download** view provides built-in file-type selectors—PDF, Images, Docs, and Media—plus any user-defined categories, with live counts, download status, and a read-only **Current settings** summary. **Download N** immediately queues all files from enabled categories after a fresh scan; **Review N links** opens **Review downloads** for per-file choices before anything starts. Select the gear button or **Edit settings** to open the **Configuration** view, where download destination, duplicate-filename behavior, and custom file categories can be changed. All categories are selected by default, and the page is rescanned about once per second while the popup remains open so dynamically added links are included.
 
@@ -30,7 +30,9 @@ Links are classified solely from the final filename/path extension, case-insensi
 - **Media — audio:** `.mp3`, `.wav`, `.flac`, `.aac`, `.m4a`, `.ogg`, `.oga`, `.opus`, `.wma`
 - **Media — video:** `.mp4`, `.m4v`, `.mov`, `.avi`, `.mkv`, `.webm`, `.wmv`, `.flv`, `.mpeg`, `.mpg`, `.3gp`, `.ogv`
 
-Endpoints without a recognized filename/path extension are not included, even if they ultimately return a downloadable file. Non-HTTP(S) links are also ignored. Duplicate absolute URLs are counted once.
+Media detection also includes direct HTTP(S) URLs in `<audio src>`, `<video src>`, and `<source src>` elements used inside audio/video elements. A standalone `<source>` is included only when its direct URL has a supported Media extension or its `type` begins with `audio/` or `video/`. This does not include `<picture><source>` image sources.
+
+Endpoints without a recognized filename/path extension are not included, even if they ultimately return a downloadable file; the only exception is an embedded media source explicitly identified by an audio/video MIME type. Non-HTTP(S) URLs, blob URLs, and streaming manifests such as `.m3u8` and `.mpd` are ignored. The extension does not download DRM-protected streams or bypass website restrictions. Duplicate absolute URLs are counted once.
 
 ## Custom file categories
 
@@ -79,6 +81,8 @@ File-type selections (PDF, Images, Docs, and Media), each custom category's sele
 ## Manual test checklist
 
 - [ ] PDF, image, document, audio, and video links show under their expected categories.
+- [ ] Verify `<audio src>`, `<video src>`, and nested audio/video `<source>` elements appear in Media, including a source without an extension but with an `audio/*` or `video/*` type.
+- [ ] Verify a `<picture><source>` image, `blob:` media URL, and `.m3u8`/`.mpd` manifest are not included; a media URL shared by an anchor and media element appears once.
 - [ ] Uppercase extensions and URLs with query strings or fragments are classified correctly.
 - [ ] Duplicate links to the same absolute URL are counted once.
 - [ ] Add a supported link with DevTools while the popup is open; the count updates within about a second.
