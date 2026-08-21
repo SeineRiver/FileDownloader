@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Huy's File Downloader",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Find file links on the current page and download selected categories.",
   "permissions": ["activeTab", "scripting", "downloads", "storage"],
   "action": {

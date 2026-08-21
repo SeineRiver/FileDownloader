@@ -58,6 +58,12 @@ The **If filename already exists** setting is stored locally and applies to ever
 
 Conflict detection is handled by Chrome at download time. Chrome extensions do not have a reliable general filesystem pre-check, so the extension does not try to predict or count conflicts.
 
+## Concurrent downloads
+
+Configuration offers **1 — Sequential**, **3 — Recommended** (the default), **5 — Faster**, and **Start all at once**. The limit applies only to downloads started by this extension. Start all at once asks Chrome to start every selected download immediately, but Chrome and the website may still apply their own limits.
+
+Save As downloads and filename-conflict prompts run one at a time, even when a higher preference is selected, so Chrome never opens multiple native input dialogs at once. Active batches are owned by the background service worker and retained for the browser session if the popup closes.
+
 ## Remembered preferences
 
 File-type selections (PDF, Images, Docs, and Media), each custom category's selection state, custom category definitions, destination preferences, and the duplicate-filename setting are stored locally in the browser and restored whenever the popup opens, including on another tab. New custom categories are selected by default; deleting one also removes its saved selection state. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.

@@ -1,4 +1,7 @@
 const DOWNLOAD_REQUEST = "page-file-downloader:download";
+const QUEUE_KEY = "pageFileDownloaderQueue";
+let queue = null;
+const VALID_LIMITS = new Set([1, 3, 5, "all"]);
 const DEFAULT_DUPLICATE_HANDLING = "uniquify";
 const DUPLICATE_HANDLING = new Set(["uniquify", "prompt", "overwrite"]);
 
@@ -67,6 +70,13 @@ function sourceFilename(urlString) {
   }
 }
 
+async function saveQueue() { if (queue) await chrome.storage.session.set({ [QUEUE_KEY]: queue }); else await chrome.storage.session.remove(QUEUE_KEY); }
+function queueStatus() { if (!queue) return null; const active = queue.items.filter((item) => item.status === "active").length; const queued = queue.items.filter((item) => item.status === "queued").length; const done = queue.items.filter((item) => item.status === "complete" || item.status === "failed").length; return { text: done === queue.items.length ? `${done} downloads finished.` : `Downloading ${done + active} of ${queue.items.length} — ${active} active, ${queued} queued` }; }
+function notifyQueue() { const status = queueStatus(); if (status) chrome.runtime.sendMessage({ type: "page-file-downloader:queue-status", statusText: status.text }).catch(() => {}); }
+async function scheduleQueue() { if (!queue) return; const limit = queue.limit === "all" ? queue.items.length : queue.limit; while (queue.items.filter((item) => item.status === "active").length < limit) { const item = queue.items.find((entry) => entry.status === "queued"); if (!item) break; item.status = "active"; try { const options = { url: item.url, conflictAction: queue.duplicateHandling, saveAs: queue.destination.mode === "ask" }; if (queue.destination.mode === "subfolder") { const filename = sourceFilename(item.url); if (filename) options.filename = queue.destination.subfolder ? `${queue.destination.subfolder}/${filename}` : filename; } item.downloadId = await chrome.downloads.download(options); } catch (error) { item.status = "failed"; item.error = error?.message || "Download was rejected."; } } await saveQueue(); notifyQueue(); if (queue.items.every((item) => item.status === "complete" || item.status === "failed")) { queue = null; await saveQueue(); } }
+chrome.downloads.onChanged.addListener(async (delta) => { if (!queue || !delta.state || !["complete", "interrupted"].includes(delta.state.current)) return; const item = queue.items.find((entry) => entry.downloadId === delta.id); if (!item) return; item.status = delta.state.current === "complete" ? "complete" : "failed"; await scheduleQueue(); });
+async function restoreQueue() { const saved = await chrome.storage.session.get(QUEUE_KEY); queue = saved[QUEUE_KEY] || queue; if (!queue) return; for (const item of queue.items.filter((entry) => entry.status === "active" && entry.downloadId)) { const [download] = await chrome.downloads.search({ id: item.downloadId }); if (!download || download.state === "complete") item.status = "complete"; else if (download.state === "interrupted") item.status = "failed"; } await scheduleQueue(); }
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type !== DOWNLOAD_REQUEST) return;
 
@@ -89,40 +99,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   const duplicateHandling = normalizeDuplicateHandling(message.duplicateHandling);
 
-  Promise.all(
-    urls.map(async (url) => {
-      try {
-        const options = {
-          url,
-          conflictAction: duplicateHandling,
-          saveAs: destination.mode === "ask"
-        };
-        if (destination.mode === "subfolder") {
-          const filename = sourceFilename(url);
-          if (filename) {
-            options.filename = destination.subfolder
-              ? `${destination.subfolder}/${filename}`
-              : filename;
-          }
-        }
-        await chrome.downloads.download(options);
-        return { url, ok: true };
-      } catch (error) {
-        return { url, ok: false, error: error?.message || "Download was rejected." };
-      }
-    })
-  ).then((results) => {
-    const failures = results.filter((result) => !result.ok);
-    sendResponse({
-      ok: true,
-      attempted: results.length,
-      succeeded: results.length - failures.length,
-      failed: failures.length,
-      errors: failures.slice(0, 3).map((failure) => failure.error)
-    });
-  }).catch((error) => {
-    sendResponse({ ok: false, error: error?.message || "Could not start downloads." });
-  });
+  const requestedLimit = VALID_LIMITS.has(message.concurrentDownloadLimit) ? message.concurrentDownloadLimit : 3;
+  queue = { items: urls.map((url) => ({ url, status: "queued" })), destination, duplicateHandling, limit: destination.mode === "ask" || duplicateHandling === "prompt" ? 1 : requestedLimit };
+  saveQueue().then(scheduleQueue).then(() => sendResponse({ ok: true, statusText: queueStatus()?.text || "Download queue started." })).catch((error) => sendResponse({ ok: false, error: error?.message || "Could not start downloads." }));
 
   return true;
 });
+restoreQueue().catch(() => {});

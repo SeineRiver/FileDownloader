@@ -11,6 +11,7 @@ export class ConfigurationView {
     this.subfolderError = document.querySelector("#subfolder-error");
     this.duplicate = document.querySelector("#duplicate-handling-select");
     this.duplicateHelp = document.querySelector("#duplicate-handling-help");
+    this.concurrency = [...document.querySelectorAll('input[name="concurrent-download-limit"]')];
     this.settings = null;
     this.customCategoriesView = new CustomCategoriesView({ onChange: onCustomCategoriesChange, onError });
     this.back.addEventListener("click", onBack);
@@ -19,6 +20,7 @@ export class ConfigurationView {
     this.subfolder.addEventListener("input", () => { this.settings.destination.subfolder = this.subfolder.value; this.render(this.settings, true); });
     this.subfolder.addEventListener("change", () => this.saveSubfolder(onSettingsChange, onError));
     this.duplicate.addEventListener("change", () => this.changeDuplicateHandling(onSettingsChange, onError));
+    this.concurrency.forEach((input) => input.addEventListener("change", async () => { this.settings.concurrentDownloadLimit = input.value === "all" ? "all" : Number(input.value); this.render(this.settings); try { await onSettingsChange(this.settings); } catch (error) { onError(error); } }));
   }
 
   show(settings, customCategories) { this.root.hidden = false; this.render(settings, false, customCategories); this.back.focus(); }
@@ -44,7 +46,7 @@ export class ConfigurationView {
     try { await onSettingsChange(this.settings); } catch (error) { onError(error); }
   }
   render(settings, preserveInput = false, customCategories = null) {
-    this.settings = { destination: { ...settings.destination }, duplicateHandling: settings.duplicateHandling };
+    this.settings = { destination: { ...settings.destination }, duplicateHandling: settings.duplicateHandling, concurrentDownloadLimit: settings.concurrentDownloadLimit };
     this.modes.forEach((input) => { input.checked = input.value === this.settings.destination.mode; });
     const subfolderActive = this.settings.destination.mode === "subfolder";
     this.subfolderField.hidden = !subfolderActive;
@@ -55,6 +57,7 @@ export class ConfigurationView {
     this.subfolderError.hidden = validation.ok;
     this.duplicate.value = this.settings.duplicateHandling;
     this.duplicateHelp.textContent = duplicateHandlingHelp(this.settings.duplicateHandling);
+    this.concurrency.forEach((input) => { input.checked = String(this.settings.concurrentDownloadLimit) === input.value; });
     if (customCategories) this.customCategoriesView.render(customCategories);
   }
 }
