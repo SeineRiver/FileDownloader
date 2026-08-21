@@ -8,7 +8,7 @@ The popup has two compact in-popup views. The **Main Download** view provides th
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
-3. Select **Load unpacked** and choose this `chrome-link-downloader` folder.
+3. Select **Load unpacked** and choose this `my-file-downloader` folder.
 4. Open a normal web page, click the extension icon, select file types and a destination, then choose **Download N files**.
 
 ## Permissions
