@@ -69,6 +69,10 @@ Configuration offers **1 — Sequential**, **3 — Recommended** (the default), 
 
 Save As downloads and filename-conflict prompts run one at a time, even when a higher preference is selected, so Chrome never opens multiple native input dialogs at once. Active batches are owned by the background service worker and retained for the browser session if the popup closes.
 
+## Download count
+
+The Main Download view shows a persistent count of files successfully downloaded with this extension. It increases only after Chrome reports an extension-managed download as complete and is mirrored to Chrome Sync along with local storage.
+
 ## Review downloads
 
 The review step lists each unique matched URL from the currently enabled categories, grouped by category. Every file is initially selected, but individual rows, each category checkbox, and **Select all** / **Select none** can change the transient selection before a batch begins. Files are not downloaded until **Download N selected** is chosen.
@@ -85,7 +89,7 @@ Selected URL lists are processed only locally: they are not retained in Chrome s
 
 ## Remembered preferences
 
-File-type selections (PDF, Images, Docs, and Media), each custom category's selection state, custom category definitions, destination preferences, duplicate-filename setting, and concurrency setting are stored locally in the browser and restored whenever the popup opens, including on another tab. Individual review selections are not stored. New custom categories are selected by default; deleting one also removes its saved selection state. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
+Destination preferences remain local to each computer. File-type selections (PDF, Images, Docs, and Media), each custom category's selection state, custom category definitions, duplicate-filename setting, concurrency setting, and completed-download count are stored locally and mirrored to Chrome Sync. With Chrome Sync enabled for the same Chrome profile, a reinstall can restore this portable information. Individual review selections are not stored. New custom categories are selected by default; deleting one also removes its saved selection state. Invalid or missing duplicate-filename values safely use the default **Keep both** setting. Older saved file-type preferences that do not include Media safely treat Media as enabled.
 
 ## Manual test checklist
 
